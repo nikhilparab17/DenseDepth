@@ -1,5 +1,5 @@
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 def DepthNorm(x, maxDepth):
     return maxDepth / x
@@ -36,7 +36,7 @@ def to_multichannel(i):
     i = i[:,:,0]
     return np.stack((i,i,i), axis=2)
         
-def display_images(outputs, inputs=None, gt=None, is_colormap=True, is_rescale=True):
+def display_images(outputs, inputs=None, gt=None, is_colormap=False, is_rescale=True):
     import matplotlib.pyplot as plt
     import skimage
     from skimage.transform import resize
@@ -76,10 +76,19 @@ def display_images(outputs, inputs=None, gt=None, is_colormap=True, is_rescale=T
     
     return skimage.util.montage(all_images, multichannel=True, fill=(0,0,0))
 
-def save_images(filename, outputs, inputs=None, gt=None, is_colormap=True, is_rescale=False):
-    montage =  display_images(outputs, inputs, is_colormap, is_rescale)
-    im = Image.fromarray(np.uint8(montage*255))
-    im.save(filename)
+def save_images(filename, outputs, inputs=None, gt=None, is_colormap=False, is_rescale=False):
+
+    from skimage.transform import resize
+
+    shape = (outputs[0].shape[0]*2, outputs[0].shape[1]*2)
+    print("shape: {}".format(shape))
+    for i in range(outputs.shape[0]):
+        #montage = display_images(outputs[i], inputs, is_colormap, is_rescale)
+        img = to_multichannel(outputs[i])
+        img = resize(img, shape, preserve_range=True, mode='reflect', anti_aliasing=True)
+        im = Image.fromarray(np.uint8(img*255))
+        im = ImageOps.grayscale(im)
+        im.save(filename + str(i+1) + '.png')
 
 def load_test_data(test_data_zip_file='nyu_test.zip'):
     print('Loading test data...', end='')
